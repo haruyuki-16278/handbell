@@ -86,6 +86,24 @@
         });
       }
 
+      const isDeviceMotionEventGranted = localStorage.getItem("isDeviceMotionEventGranted") === "true";
+      const requestDeviceMotionPermissionDialog = document.getElementById("request-device-motion-permission-dialog");
+      if (typeof DeviceMotionEvent.requestPermission === "function" && !isDeviceMotionEventGranted) {
+        requestDeviceMotionPermissionDialog.showModal();
+      }
+      const requestDeviceMotionPermissionButton = document.getElementById("request-device-motion-permission-button");
+      requestDeviceMotionPermissionButton.addEventListener("click", () => {
+        DeviceMotionEvent.requestPermission().then((state) => {
+          if (state === "granted") {
+            requestDeviceMotionPermissionDialog.close();
+            localStorage.setItem("isDeviceMotionEventGranted", "true");
+          } else {
+            requestDeviceMotionPermissionDialog.close();
+            localStorage.removeItem("isDeviceMotionEventGranted");
+          }
+        });
+      });
+
       const newRoomDialog = document.getElementById("new-room-dialog");
       const playInNewRoomButton = document.getElementById(
         "play-in-new-room-button"
@@ -124,6 +142,20 @@
     >
       play in new room
     </button>
+    <dialog id="request-device-motion-permission-dialog">
+      <div class="border-2 border-gray-300 p-8 rounded-md">
+        <h2 class="text-2xl font-bold mb-4">
+          request device motion permission
+        </h2>
+        <p class="mb-4">please allow motion sensor access to use this app</p>
+        <button
+          id="request-device-motion-permission-button"
+          class="bg-blue-500 text-white px-4 py-2 rounded-md"
+        >
+          request
+        </button>
+      </div>
+    </dialog>
     <dialog
       id="new-room-dialog"
       class="border-2 border-gray-300 p-8 rounded-md"
