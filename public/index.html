@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="utf-8">
-    <title>ようこそ、jigインターンへ！</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <title>handbell</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      * {
+      *:not(dialog) {
         box-sizing: border-box;
         margin: 0;
       }
-      html, body {
+      html,
+      body {
         height: 100vh;
         width: 100%;
       }
@@ -19,10 +21,134 @@
       }
     </style>
     <script type="module">
-      const message = await fetch("/welcome-message")
-      document.querySelector("body").innerHTML = `<h1>${await message.text()}</h1>`
+      let myID = localStorage.getItem("id");
+      if (!myID) {
+        myID = crypto.randomUUID();
+        localStorage.setItem("id", myID);
+      }
+
+      const createRoomListItem = (room) => {
+        const li = document.createElement("li");
+        li.classList.add("flex", "items-center", "mb-2", "gap-2");
+        const roomName = document.createElement("span");
+        roomName.classList.add("text-lg", "font-bold", "mr-auto");
+        roomName.textContent = room.name;
+        li.appendChild(roomName);
+        const joinButton = document.createElement("button");
+        joinButton.classList.add(
+          "bg-blue-500",
+          "text-white",
+          "px-4",
+          "py-2",
+          "rounded-md"
+        );
+        joinButton.textContent = "join";
+        joinButton.addEventListener("click", () => {
+          console.log("join room", room.name);
+        });
+        if (room.owner === myID) {
+          console.log(room.owner, myID);
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add(
+            "bg-red-500",
+            "text-white",
+            "px-4",
+            "py-2",
+            "rounded-md"
+          );
+          deleteButton.textContent = "delete";
+          deleteButton.addEventListener("click", async () => {
+            await fetch(`/rooms?id=${room.id}`, {
+              method: "DELETE",
+            });
+            roomList.removeChild(li);
+            if (roomList.children.length === 0) {
+              roomList.textContent = "no rooms";
+            }
+          });
+          li.appendChild(deleteButton);
+        }
+        li.appendChild(joinButton);
+        return li;
+      };
+
+      const roomList = document.getElementById("room-list");
+      const rooms = await (await fetch("/rooms")).json();
+      console.log(rooms);
+      if (rooms.length === 0) {
+        roomList.textContent = "no rooms";
+      } else {
+        while (roomList.firstChild) {
+          roomList.removeChild(roomList.firstChild);
+        }
+        rooms.forEach((room) => {
+          roomList.appendChild(createRoomListItem(room));
+        });
+      }
+
+      const newRoomDialog = document.getElementById("new-room-dialog");
+      const playInNewRoomButton = document.getElementById(
+        "play-in-new-room-button"
+      );
+      playInNewRoomButton.addEventListener("click", () => {
+        newRoomDialog.showModal();
+      });
+      const roomNameInput = document.getElementById("room-name-input");
+      const createRoomButton = document.getElementById("create-room-button");
+      createRoomButton.addEventListener("click", async () => {
+        const response = await fetch("/rooms", {
+          method: "POST",
+          body: JSON.stringify({ name: roomNameInput.value, owner: myID }),
+        });
+        const room = await response.json();
+        console.log(room);
+        roomList.appendChild(createRoomListItem(room));
+      });
+      const closeDialogButton = document.getElementById("close-dialog-button");
+      closeDialogButton.addEventListener("click", () => {
+        newRoomDialog.close();
+      });
     </script>
   </head>
   <body>
+    <h1 class="text-4xl font-bold mb-8 text-center">handbell</h1>
+    <ul
+      id="room-list"
+      class="w-[300px] h-[300px] mb-4 border-2 border-gray-300 p-2 rounded-md overflow-y-scroll"
+    >
+      <li>loading...</li>
+    </ul>
+    <button
+      id="play-in-new-room-button"
+      class="bg-blue-500 text-white px-4 py-2 rounded-md"
+    >
+      play in new room
+    </button>
+    <dialog
+      id="new-room-dialog"
+      class="border-2 border-gray-300 p-8 rounded-md"
+    >
+      <div class="flex flex-col items-center gap-4">
+        <h2 class="text-2xl font-bold mb-4">create new room</h2>
+        <input
+          type="text"
+          id="room-name-input"
+          class="border-2 border-gray-300 rounded-md px-2 py-1"
+          placeholder="room name"
+        />
+        <button
+          id="create-room-button"
+          class="bg-blue-500 text-white px-4 py-2 rounded-md"
+        >
+          create
+        </button>
+        <button
+          id="close-dialog-button"
+          class="bg-gray-300 text-white px-4 py-2 rounded-md"
+        >
+          close
+        </button>
+      </div>
+    </dialog>
   </body>
 </html>
